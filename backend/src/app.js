@@ -4,7 +4,11 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const authRoutes =
     require("./routes/auth.routes");
+const sportRoutes =
+    require("./routes/sport.routes");
 const app = express();
+const teamRoutes =
+    require("./routes/team.routes");
 
 app.use(cors());
 
@@ -21,11 +25,24 @@ app.use(
     authRoutes
 );
 
+
+app.use(
+    "/api/sports",
+    sportRoutes
+);
+
 app.get("/health", (req, res) => {
     res.status(200).json({
         success: true,
         message: "Server running"
     });
 });
+
+
+
+app.use(
+    "/api/teams",
+    teamRoutes
+);
 
 module.exports = app;

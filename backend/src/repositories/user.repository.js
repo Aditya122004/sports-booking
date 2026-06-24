@@ -96,10 +96,26 @@ const getProfileById = async (
 
     return rows[0];
 };
+const findUserByEmail =
+async (email) => {
+
+    const [rows] =
+        await pool.execute(
+            `
+            SELECT *
+            FROM users
+            WHERE email = ?
+            `,
+            [email]
+        );
+
+    return rows[0];
+};
 
 module.exports = {
     findByEmail,
     createUser,
     findById,
-    getProfileById
+    getProfileById,
+    findUserByEmail
 };
