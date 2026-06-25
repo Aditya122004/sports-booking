@@ -9,6 +9,10 @@ const sportRoutes =
 const app = express();
 const teamRoutes =
     require("./routes/team.routes");
+const facilityRoutes =
+    require("./routes/facility.routes");
+const bookingRoutes=
+    require("./routes/booking.routes");
 
 app.use(cors());
 
@@ -38,11 +42,19 @@ app.get("/health", (req, res) => {
     });
 });
 
-
-
 app.use(
     "/api/teams",
     teamRoutes
+);
+
+
+app.use(
+    "/api/facilities",
+    facilityRoutes
+);
+app.use(
+    "/api/bookings",
+    bookingRoutes
 );
 
 module.exports = app;
