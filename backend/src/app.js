@@ -13,6 +13,10 @@ const facilityRoutes =
     require("./routes/facility.routes");
 const bookingRoutes=
     require("./routes/booking.routes");
+const paymentRoutes=
+    require("./routes/payment.routes")
+const adminRoutes =
+    require("./routes/admin.routes");
 
 app.use(cors());
 
@@ -55,6 +59,16 @@ app.use(
 app.use(
     "/api/bookings",
     bookingRoutes
+);
+
+app.use(
+    "/api/payments",
+    paymentRoutes
+);
+
+app.use(
+    "/api/admin",
+    adminRoutes
 );
 
 module.exports = app;

@@ -21,6 +21,7 @@ const createBooking = async (
 
         const {
             facilityId,
+            teamId = null,
             bookingDate,
             startTime,
             duration
@@ -38,14 +39,57 @@ const createBooking = async (
             );
         }
 
+        if (
+            Number(duration) >
+            facility.max_booking_hours
+        ) {
+            throw new Error(
+                "Duration exceeds allowed limit"
+            );
+        }
+
+        const formattedStartTime =
+            startTime.length === 5
+                ? `${startTime}:00`
+                : startTime;
+
         const startHour =
             Number(
-                startTime.split(":")[0]
+                formattedStartTime
+                    .split(":")[0]
             );
+
+        const openingHour =
+            Number(
+                facility.opening_time
+                    .split(":")[0]
+            );
+
+        const closingHour =
+            Number(
+                facility.closing_time
+                    .split(":")[0]
+            );
+
+        if (
+            startHour < openingHour
+        ) {
+            throw new Error(
+                "Booking before opening time"
+            );
+        }
 
         const endHour =
             startHour +
             Number(duration);
+
+        if (
+            endHour > closingHour
+        ) {
+            throw new Error(
+                "Booking exceeds facility closing time"
+            );
+        }
 
         const endTime =
             `${String(endHour)
@@ -56,13 +100,14 @@ const createBooking = async (
                 .findConflictingBookingForUpdate(
                     facilityId,
                     bookingDate,
-                    `${startTime}:00`,
+                    formattedStartTime,
                     endTime,
                     connection
                 );
 
-        if (conflictingBooking) {
-
+        if (
+            conflictingBooking
+        ) {
             throw new Error(
                 "Slot already booked"
             );
@@ -86,15 +131,12 @@ const createBooking = async (
                     {
                         userId,
                         facilityId,
+                        teamId,
                         bookingDate,
-
                         startTime:
-                            `${startTime}:00`,
-
+                            formattedStartTime,
                         endTime,
-
                         totalAmount,
-
                         expiresAt
                     },
                     connection
@@ -104,7 +146,8 @@ const createBooking = async (
 
         return {
             bookingId,
-            totalAmount
+            totalAmount,
+            expiresAt
         };
 
     } catch (error) {
@@ -118,6 +161,7 @@ const createBooking = async (
         connection.release();
     }
 };
-module.exports={
+
+module.exports = {
     createBooking
 };
