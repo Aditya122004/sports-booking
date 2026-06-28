@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — SportBook</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">🏟️ Sport<span>Book</span></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="active"><span class="icon">📊</span> Dashboard</a>
+        <a href="users.html"><span class="icon">👥</span> Users</a>
+        <a href="bookings.html"><span class="icon">📋</span> Bookings</a>
+        <a href="sports.html"><span class="icon">🏆</span> Sports</a>
+        <a href="revenue.html"><span class="icon">💰</span> Revenue</a>
+        <a href="../dashboard.html"><span class="icon">🏠</span> User View</a>
+        <a href="#" onclick="AUTH.logout()"><span class="icon">🚪</span> Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main">
+      <div style="margin-bottom:32px">
+        <h1>Dashboard 📊</h1>
+        <p>Welcome back, <span id="admin-name">Admin</span>!</p>
+      </div>
+      <div class="grid-4" id="stats-container">
+        <div class="stat-card"><div class="stat-icon">👥</div><div><div class="stat-value">—</div><div class="stat-label">Total Users</div></div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-value">—</div><div class="stat-label">Total Bookings</div></div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-value">—</div><div class="stat-label">Revenue</div></div></div>
+        <div class="stat-card"><div class="stat-icon">🏟️</div><div><div class="stat-value">—</div><div class="stat-label">Facilities</div></div></div>
+      </div>
+      <div style="margin-top:40px">
+        <div class="section-title">
+          <h2>Recent Bookings</h2>
+          <a href="bookings.html" class="btn btn-outline btn-sm">View All →</a>
+        </div>
+        <div id="recent-bookings">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    AUTH.requireAdmin();
+    const user = AUTH.getUser();
+    document.getElementById('admin-name').textContent = user?.name || 'Admin';
+
+    async function loadDashboard() {
+      try {
+        const data  = await AdminAPI.getDashboard();
+        const stats = data.stats || data;
+
+        document.getElementById('stats-container').innerHTML = `
+          <div class="stat-card"><div class="stat-icon">👥</div><div><div class="stat-value">${stats.totalUsers || 0}</div><div class="stat-label">Total Users</div></div></div>
+          <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-value">${stats.totalBookings || 0}</div><div class="stat-label">Total Bookings</div></div></div>
+          <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-value">₹${stats.totalRevenue || 0}</div><div class="stat-label">Revenue</div></div></div>
+          <div class="stat-card"><div class="stat-icon">🏟️</div><div><div class="stat-value">${stats.totalFacilities || 0}</div><div class="stat-label">Facilities</div></div></div>
+        `;
+
+        const bookingsData = await AdminAPI.getBookings();
+        const bookings     = (bookingsData.bookings || bookingsData.data || bookingsData || []).slice(0, 5);
+
+        if (!bookings.length) {
+          document.getElementById('recent-bookings').innerHTML = '<p style="color:var(--text-muted)">No bookings yet</p>';
+          return;
+        }
+
+        document.getElementById('recent-bookings').innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>User</th><th>Facility</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                ${bookings.map(b => `
+                  <tr>
+                    <td>#${b.id}</td>
+                    <td>${b.user_name || b.userName || '—'}</td>
+                    <td>${b.facility_name || b.facilityName || '—'}</td>
+                    <td>${b.booking_date || b.bookingDate}</td>
+                    <td style="color:var(--accent)">₹${b.total_amount || b.totalAmount}</td>
+                    <td><span class="badge ${b.booking_status === 'CONFIRMED' ? 'badge-success' : 'badge-warning'}">${b.booking_status || b.bookingStatus}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        showToast('Could not load dashboard: ' + err.message, 'error');
+      }
+    }
+    loadDashboard();
+  </script>
+</body>
+</html>

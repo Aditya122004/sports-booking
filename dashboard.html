@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browse Sports — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html" class="active">Sports</a></li>
+        <li><a href="facilities.html">Facilities</a></li>
+        <li><a href="my-bookings.html">My Bookings</a></li>
+        <li><a href="teams.html">Teams</a></li>
+        <li id="nav-user"></li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header">
+        <h1>Browse Sports 🏆</h1>
+        <p>Choose your favourite sport and view available facilities</p>
+      </div>
+      <div id="sports-container">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.requireLogin();
+
+    const user = AUTH.getUser();
+    document.getElementById('nav-user').innerHTML = `
+      <span style="color:var(--text-muted);font-size:0.9rem">Hi, ${user?.name?.split(' ')[0]}</span>
+      &nbsp;<button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+    `;
+
+    async function loadSports() {
+      const container = document.getElementById('sports-container');
+      try {
+        const data = await SportsAPI.getAll();
+        const sports = data.sports || data.data || data || [];
+
+        if (!sports.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🏅</div>
+              <h3>No sports found</h3>
+              <p>Ask admin to add sports</p>
+            </div>`;
+          return;
+        }
+
+        const emojis = ['🏸','⚽','🏏','🎾','🏀','🏐','🥊','🏊','🤸','🏓'];
+        container.innerHTML = `<div class="grid-4">
+          ${sports.map((s, i) => `
+            <div class="card" style="cursor:pointer;text-align:center"
+              onclick="location.href='facilities.html?sportId=${s.id}&sportName=${encodeURIComponent(s.name)}'">
+              ${s.image_url
+                ? `<img src="${s.image_url}" class="card-img" alt="${s.name}"/>`
+                : `<div class="card-img-placeholder">${emojis[i % emojis.length]}</div>`}
+              <h3>${s.name}</h3>
+              <p style="margin-top:8px;font-size:0.85rem">Click to view facilities →</p>
+            </div>
+          `).join('')}
+        </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    loadSports();
+  </script>
+</body>
+</html>

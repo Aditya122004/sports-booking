@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teams — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html">Sports</a></li>
+        <li><a href="facilities.html">Facilities</a></li>
+        <li><a href="my-bookings.html">My Bookings</a></li>
+        <li><a href="teams.html" class="active">Teams</a></li>
+        <li id="nav-user"></li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+          <h1>My Teams 👥</h1>
+          <p>View your teams or create a new one</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal()">+ New Team</button>
+      </div>
+      <div id="teams-container">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Team Modal -->
+  <div class="modal-overlay" id="createModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New Team</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-error"></div>
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" id="teamName" class="form-control" placeholder="Code Warriors"/>
+      </div>
+      <div class="form-group">
+        <label>Sport</label>
+        <select id="teamSport" class="form-control">
+          <option value="">Loading sports...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Team Logo <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="file" id="teamLogo" class="form-control" accept="image/*"/>
+      </div>
+      <button class="btn btn-primary btn-block" id="createTeamBtn" onclick="createTeam()">Create Team</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.requireLogin();
+
+    const user = AUTH.getUser();
+    document.getElementById('nav-user').innerHTML = `
+      <span style="color:var(--text-muted);font-size:0.9rem">Hi, ${user?.name?.split(' ')[0]}</span>
+      &nbsp;<button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+    `;
+
+    async function loadTeams() {
+      const container = document.getElementById('teams-container');
+      try {
+        const data  = await TeamsAPI.getMy();
+        const teams = data.teams || data.data || data || [];
+
+        if (!teams.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">👥</div>
+              <h3>No teams yet</h3>
+              <p>Click "New Team" button to create one</p>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `<div class="grid-3">
+          ${teams.map(t => `
+            <div class="card">
+              ${t.logo_url
+                ? `<img src="${t.logo_url}" class="card-img" style="height:120px;object-fit:contain" alt="${t.name}"/>`
+                : `<div class="card-img-placeholder" style="height:120px">🏅</div>`}
+              <h3>${t.name}</h3>
+              <p style="font-size:0.85rem;margin-top:6px">Sport: ${t.sport_name || t.sportName || '—'}</p>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px">
+                👑 Captain: ${t.captain_name || t.captainName || 'You'}
+              </p>
+              <div style="margin-top:16px">
+                <a href="facilities.html" class="btn btn-primary btn-sm">Book a Court</a>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    async function openModal() {
+      document.getElementById('createModal').classList.add('open');
+      try {
+        const data   = await SportsAPI.getAll();
+        const sports = data.sports || data.data || data || [];
+        document.getElementById('teamSport').innerHTML =
+          sports.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      } catch {
+        document.getElementById('teamSport').innerHTML = '<option>Could not load sports</option>';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('createModal').classList.remove('open');
+    }
+
+    async function createTeam() {
+      const btn      = document.getElementById('createTeamBtn');
+      const errDiv   = document.getElementById('modal-error');
+      const name     = document.getElementById('teamName').value.trim();
+      const sportId  = document.getElementById('teamSport').value;
+      const logoFile = document.getElementById('teamLogo').files[0];
+
+      errDiv.innerHTML = '';
+      if (!name || !sportId) {
+        errDiv.innerHTML = '<div class="alert alert-danger">Please enter team name and select a sport</div>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('sportId', sportId);
+      if (logoFile) formData.append('logo', logoFile);
+
+      btn.disabled    = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        await TeamsAPI.create(formData);
+        showToast('Team created successfully! 🎉', 'success');
+        closeModal();
+        loadTeams();
+      } catch (err) {
+        errDiv.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Create Team';
+      }
+    }
+
+    loadTeams();
+  </script>
+</body>
+</html>

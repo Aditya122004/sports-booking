@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Bookings — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html">Sports</a></li>
+        <li><a href="facilities.html">Facilities</a></li>
+        <li><a href="my-bookings.html" class="active">My Bookings</a></li>
+        <li><a href="teams.html">Teams</a></li>
+        <li id="nav-user"></li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header">
+        <h1>My Bookings 📋</h1>
+        <p>All your bookings in one place</p>
+      </div>
+      <div id="bookings-container">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.requireLogin();
+
+    const user = AUTH.getUser();
+    document.getElementById('nav-user').innerHTML = `
+      <span style="color:var(--text-muted);font-size:0.9rem">Hi, ${user?.name?.split(' ')[0]}</span>
+      &nbsp;<button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+    `;
+
+    function statusBadge(status) {
+      const map = { CONFIRMED: 'badge-success', PENDING: 'badge-warning', CANCELLED: 'badge-danger' };
+      return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
+    }
+
+    function payBadge(status) {
+      const map = { SUCCESS: 'badge-success', PENDING: 'badge-warning', FAILED: 'badge-danger' };
+      return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
+    }
+
+    async function loadBookings() {
+      const container = document.getElementById('bookings-container');
+      try {
+        const data     = await BookingsAPI.getMy();
+        const bookings = data.bookings || data.data || data || [];
+
+        if (!bookings.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">📭</div>
+              <h3>No bookings yet</h3>
+              <p>You haven't made any bookings</p>
+              <a href="dashboard.html" class="btn btn-primary" style="margin-top:16px">Book a Court →</a>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#ID</th><th>Facility</th><th>Date</th>
+                  <th>Time</th><th>Amount</th><th>Booking</th><th>Payment</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookings.map(b => `
+                  <tr>
+                    <td>#${b.id}</td>
+                    <td>${b.facility_name || b.facilityName || '—'}</td>
+                    <td>${b.booking_date || b.bookingDate}</td>
+                    <td>${b.start_time || b.startTime} – ${b.end_time || b.endTime}</td>
+                    <td style="color:var(--accent);font-weight:600">₹${b.total_amount || b.totalAmount}</td>
+                    <td>${statusBadge(b.booking_status || b.bookingStatus)}</td>
+                    <td>${payBadge(b.payment_status || b.paymentStatus)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    loadBookings();
+  </script>
+</body>
+</html>

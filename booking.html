@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Slot — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html">Sports</a></li>
+        <li><a href="facilities.html">Facilities</a></li>
+        <li><a href="my-bookings.html">My Bookings</a></li>
+        <li id="nav-user"></li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container" style="max-width:760px">
+      <div class="page-header">
+        <h1 id="facility-title">Book a Slot 📅</h1>
+        <p>Select date, time and duration</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:20px">1️⃣ Date & Time</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Booking Date</label>
+            <input type="date" id="bookingDate" class="form-control"/>
+          </div>
+          <div class="form-group">
+            <label>Duration (hours)</label>
+            <select id="duration" class="form-control">
+              <option value="1">1 Hour</option>
+              <option value="2" selected>2 Hours</option>
+              <option value="3">3 Hours</option>
+              <option value="4">4 Hours</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Available Slots</label>
+          <div id="slots-container">
+            <p style="color:var(--text-muted);font-size:0.9rem">Select a date to view available slots</p>
+          </div>
+        </div>
+
+        <h3 style="margin:24px 0 16px">2️⃣ Booking Type</h3>
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-main)">
+            <input type="radio" name="bookingType" value="individual" checked onchange="toggleTeam(false)"/>
+            Individual
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-main)">
+            <input type="radio" name="bookingType" value="team" onchange="toggleTeam(true)"/>
+            Team Booking
+          </label>
+        </div>
+
+        <div id="team-select" style="display:none" class="form-group">
+          <label>Select Your Team</label>
+          <select id="teamId" class="form-control">
+            <option value="">Loading teams...</option>
+          </select>
+        </div>
+
+        <div id="booking-summary" style="display:none;background:var(--bg-card2);border-radius:var(--radius-sm);padding:18px;margin:20px 0">
+          <h4 style="margin-bottom:12px">📋 Booking Summary</h4>
+          <p id="summary-facility" style="font-size:0.9rem;color:var(--text-main)"></p>
+          <p id="summary-time"     style="font-size:0.9rem;color:var(--text-main)"></p>
+          <p id="summary-amount"   style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-top:8px"></p>
+        </div>
+
+        <div id="error-msg"></div>
+
+        <button class="btn btn-primary btn-lg btn-block" id="bookBtn" onclick="doBooking()" disabled>
+          Proceed to Payment 💳
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.requireLogin();
+
+    const params       = new URLSearchParams(window.location.search);
+    const facilityId   = params.get('facilityId');
+    const facilityName = params.get('facilityName') ? decodeURIComponent(params.get('facilityName')) : 'Facility';
+    const pricePerHour = parseFloat(params.get('price')) || 0;
+    let selectedSlot   = null;
+
+    document.getElementById('facility-title').textContent = `Book: ${facilityName} 📅`;
+
+    const user = AUTH.getUser();
+    document.getElementById('nav-user').innerHTML = `
+      <span style="color:var(--text-muted);font-size:0.9rem">Hi, ${user?.name?.split(' ')[0]}</span>
+      &nbsp;<button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+    `;
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('bookingDate').min   = today;
+    document.getElementById('bookingDate').value = today;
+
+    document.getElementById('bookingDate').addEventListener('change', loadSlots);
+    document.getElementById('duration').addEventListener('change', updateSummary);
+
+    async function loadSlots() {
+      const date      = document.getElementById('bookingDate').value;
+      if (!date || !facilityId) return;
+      const container = document.getElementById('slots-container');
+      container.innerHTML = '<div class="spinner" style="margin:10px auto;width:24px;height:24px;border-width:2px"></div>';
+
+      try {
+        const data  = await FacilitiesAPI.getAvailability(facilityId, date);
+        const slots = data.availableSlots || data.slots || [];
+
+        if (!slots.length) {
+          container.innerHTML = '<p style="color:var(--warning)">⚠️ No slots available for this date</p>';
+          return;
+        }
+
+        container.innerHTML = `<div class="slot-grid">
+          ${slots.map(slot => `
+            <div class="slot ${slot.isBooked ? 'booked' : ''}"
+              onclick="${slot.isBooked ? '' : `selectSlot('${slot.time}', this)`}">
+              ${slot.time}
+            </div>
+          `).join('')}
+        </div>`;
+      } catch (err) {
+        container.innerHTML = `<p style="color:var(--danger)">Could not load slots: ${err.message}</p>`;
+      }
+    }
+
+    function selectSlot(time, el) {
+      document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedSlot = time;
+      updateSummary();
+    }
+
+    function updateSummary() {
+      if (!selectedSlot) return;
+      const duration = parseInt(document.getElementById('duration').value);
+      const amount   = pricePerHour * duration;
+      const date     = document.getElementById('bookingDate').value;
+
+      document.getElementById('booking-summary').style.display = 'block';
+      document.getElementById('summary-facility').textContent  = `🏟️ ${facilityName}`;
+      document.getElementById('summary-time').textContent      = `📅 ${date} | ⏰ ${selectedSlot} | ⏱ ${duration} hr`;
+      document.getElementById('summary-amount').textContent    = `💰 Total: ₹${amount}`;
+      document.getElementById('bookBtn').disabled = false;
+    }
+
+    function toggleTeam(show) {
+      document.getElementById('team-select').style.display = show ? 'block' : 'none';
+      if (show) loadTeams();
+    }
+
+    async function loadTeams() {
+      const sel = document.getElementById('teamId');
+      try {
+        const data  = await TeamsAPI.getMy();
+        const teams = data.teams || data.data || data || [];
+        sel.innerHTML = teams.length
+          ? teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('')
+          : '<option value="">No teams found — create a team first</option>';
+      } catch { sel.innerHTML = '<option value="">Could not load teams</option>'; }
+    }
+
+    async function doBooking() {
+      const btn    = document.getElementById('bookBtn');
+      const errDiv = document.getElementById('error-msg');
+      errDiv.innerHTML = '';
+
+      const date     = document.getElementById('bookingDate').value;
+      const duration = parseInt(document.getElementById('duration').value);
+      const type     = document.querySelector('input[name="bookingType"]:checked').value;
+      const teamId   = document.getElementById('teamId').value;
+
+      if (!selectedSlot) {
+        errDiv.innerHTML = '<div class="alert alert-danger">Please select a time slot first</div>';
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Creating booking...';
+
+      try {
+        const payload = { facilityId: parseInt(facilityId), bookingDate: date, startTime: selectedSlot, duration };
+        if (type === 'team' && teamId) payload.teamId = parseInt(teamId);
+
+        const booking             = await BookingsAPI.create(payload);
+        const { bookingId, totalAmount } = booking;
+
+        const order = await PaymentsAPI.createOrder(bookingId, totalAmount);
+
+        const options = {
+          key:         order.razorpayKeyId || '',
+          amount:      totalAmount * 100,
+          currency:    'INR',
+          name:        'SportBook',
+          description: `Booking #${bookingId}`,
+          order_id:    order.razorpayOrderId,
+          handler: async function(response) {
+            try {
+              await PaymentsAPI.verify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+              });
+              showToast('Payment successful! Booking confirmed 🎉', 'success');
+              setTimeout(() => window.location.href = 'my-bookings.html', 1200);
+            } catch (err) {
+              showToast('Payment verification failed: ' + err.message, 'error');
+            }
+          },
+          prefill: { name: user?.name, email: user?.email },
+          theme:   { color: '#1a73e8' },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+        btn.disabled    = false;
+        btn.textContent = 'Proceed to Payment 💳';
+
+      } catch (err) {
+        errDiv.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+        btn.disabled    = false;
+        btn.textContent = 'Proceed to Payment 💳';
+      }
+    }
+
+    loadSlots();
+  </script>
+</body>
+</html>

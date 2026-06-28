@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bookings — Admin — SportBook</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">🏟️ Sport<span>Book</span></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><span class="icon">📊</span> Dashboard</a>
+        <a href="users.html"><span class="icon">👥</span> Users</a>
+        <a href="bookings.html" class="active"><span class="icon">📋</span> Bookings</a>
+        <a href="sports.html"><span class="icon">🏆</span> Sports</a>
+        <a href="revenue.html"><span class="icon">💰</span> Revenue</a>
+        <a href="../dashboard.html"><span class="icon">🏠</span> User View</a>
+        <a href="#" onclick="AUTH.logout()"><span class="icon">🚪</span> Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main">
+      <div style="margin-bottom:32px"><h1>All Bookings 📋</h1><p>All bookings on the platform</p></div>
+      <div id="bookings-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+  <div id="toast-container"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    AUTH.requireAdmin();
+    async function loadBookings() {
+      const container = document.getElementById('bookings-container');
+      try {
+        const data     = await AdminAPI.getBookings();
+        const bookings = data.bookings || data.data || data || [];
+        if (!bookings.length) {
+          container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No bookings found</h3></div>';
+          return;
+        }
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>User</th><th>Facility</th><th>Date</th><th>Time</th><th>Amount</th><th>Booking</th><th>Payment</th></tr></thead>
+              <tbody>
+                ${bookings.map(b => {
+                  const bStatus = b.booking_status || b.bookingStatus;
+                  const pStatus = b.payment_status || b.paymentStatus;
+                  const bClass  = bStatus === 'CONFIRMED' ? 'badge-success' : bStatus === 'CANCELLED' ? 'badge-danger' : 'badge-warning';
+                  const pClass  = pStatus === 'SUCCESS'   ? 'badge-success' : pStatus === 'FAILED'    ? 'badge-danger' : 'badge-warning';
+                  return `<tr>
+                    <td>#${b.id}</td>
+                    <td>${b.user_name || b.userName || '—'}</td>
+                    <td>${b.facility_name || b.facilityName || '—'}</td>
+                    <td>${b.booking_date || b.bookingDate}</td>
+                    <td>${b.start_time || b.startTime} – ${b.end_time || b.endTime}</td>
+                    <td style="color:var(--accent);font-weight:600">₹${b.total_amount || b.totalAmount}</td>
+                    <td><span class="badge ${bClass}">${bStatus}</span></td>
+                    <td><span class="badge ${pClass}">${pStatus}</span></td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+    loadBookings();
+  </script>
+</body>
+</html>

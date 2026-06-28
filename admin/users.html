@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Users — Admin — SportBook</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">🏟️ Sport<span>Book</span></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><span class="icon">📊</span> Dashboard</a>
+        <a href="users.html" class="active"><span class="icon">👥</span> Users</a>
+        <a href="bookings.html"><span class="icon">📋</span> Bookings</a>
+        <a href="sports.html"><span class="icon">🏆</span> Sports</a>
+        <a href="revenue.html"><span class="icon">💰</span> Revenue</a>
+        <a href="../dashboard.html"><span class="icon">🏠</span> User View</a>
+        <a href="#" onclick="AUTH.logout()"><span class="icon">🚪</span> Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main">
+      <div style="margin-bottom:32px"><h1>All Users 👥</h1><p>List of all registered users</p></div>
+      <div id="users-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+  <div id="toast-container"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    AUTH.requireAdmin();
+    async function loadUsers() {
+      const container = document.getElementById('users-container');
+      try {
+        const data  = await AdminAPI.getUsers();
+        const users = data.users || data.data || data || [];
+        if (!users.length) {
+          container.innerHTML = '<div class="empty-state"><div class="icon">👥</div><h3>No users found</h3></div>';
+          return;
+        }
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>ID Type</th><th>Joined</th></tr></thead>
+              <tbody>
+                ${users.map(u => `
+                  <tr>
+                    <td>#${u.id}</td>
+                    <td style="display:flex;align-items:center;gap:10px">
+                      ${u.profile_picture
+                        ? `<img src="${u.profile_picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover"/>`
+                        : `<div style="width:32px;height:32px;border-radius:50%;background:var(--primary-glow);display:flex;align-items:center;justify-content:center;font-size:0.85rem">${u.name[0]}</div>`}
+                      ${u.name}
+                    </td>
+                    <td>${u.email}</td>
+                    <td><span class="badge ${u.role === 'ADMIN' ? 'badge-primary' : 'badge-muted'}">${u.role}</span></td>
+                    <td>${u.photo_id_type || u.photoIdType}</td>
+                    <td style="color:var(--text-muted);font-size:0.85rem">${new Date(u.created_at || u.createdAt).toLocaleDateString('en-IN')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+    loadUsers();
+  </script>
+</body>
+</html>

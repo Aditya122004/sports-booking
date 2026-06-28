@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sports — Admin — SportBook</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">🏟️ Sport<span>Book</span></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><span class="icon">📊</span> Dashboard</a>
+        <a href="users.html"><span class="icon">👥</span> Users</a>
+        <a href="bookings.html"><span class="icon">📋</span> Bookings</a>
+        <a href="sports.html" class="active"><span class="icon">🏆</span> Sports</a>
+        <a href="revenue.html"><span class="icon">💰</span> Revenue</a>
+        <a href="../dashboard.html"><span class="icon">🏠</span> User View</a>
+        <a href="#" onclick="AUTH.logout()"><span class="icon">🚪</span> Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+        <div><h1>Manage Sports 🏆</h1><p>Add, edit or delete sports</p></div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Sport</button>
+      </div>
+      <div id="sports-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add New Sport</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-error"></div>
+      <div class="form-group"><label>Sport Name</label><input type="text" id="sportName" class="form-control" placeholder="Football"/></div>
+      <div class="form-group"><label>Sport Image <span style="color:var(--text-muted)">(optional)</span></label><input type="file" id="sportImage" class="form-control" accept="image/*"/></div>
+      <button class="btn btn-primary btn-block" id="addBtn" onclick="addSport()">Add Sport</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    AUTH.requireAdmin();
+    const emojis = ['🏸','⚽','🏏','🎾','🏀','🏐','🥊','🏊','🤸','🏓'];
+
+    async function loadSports() {
+      const container = document.getElementById('sports-container');
+      try {
+        const data   = await SportsAPI.getAll();
+        const sports = data.sports || data.data || data || [];
+        if (!sports.length) {
+          container.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><h3>No sports found</h3><p>Click "Add Sport" to add one</p></div>';
+          return;
+        }
+        container.innerHTML = `<div class="grid-4">
+          ${sports.map((s, i) => `
+            <div class="card" style="text-align:center">
+              ${s.image_url
+                ? `<img src="${s.image_url}" class="card-img" style="height:120px;object-fit:contain" alt="${s.name}"/>`
+                : `<div class="card-img-placeholder" style="height:120px">${emojis[i % emojis.length]}</div>`}
+              <h4>${s.name}</h4>
+              <div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+                <button class="btn btn-danger btn-sm" onclick="deleteSport(${s.id}, '${s.name}')">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+    function closeModal()   { document.getElementById('addModal').classList.remove('open'); }
+
+    async function addSport() {
+      const btn     = document.getElementById('addBtn');
+      const errDiv  = document.getElementById('modal-error');
+      const name    = document.getElementById('sportName').value.trim();
+      const imgFile = document.getElementById('sportImage').files[0];
+      errDiv.innerHTML = '';
+      if (!name) { errDiv.innerHTML = '<div class="alert alert-danger">Please enter sport name</div>'; return; }
+      const formData = new FormData();
+      formData.append('name', name);
+      if (imgFile) formData.append('image', imgFile);
+      btn.disabled = true; btn.textContent = 'Adding...';
+      try {
+        await SportsAPI.create(formData);
+        showToast('Sport added successfully! 🎉', 'success');
+        closeModal();
+        document.getElementById('sportName').value = '';
+        loadSports();
+      } catch (err) {
+        errDiv.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      } finally { btn.disabled = false; btn.textContent = 'Add Sport'; }
+    }
+
+    async function deleteSport(id, name) {
+      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+      try {
+        await SportsAPI.delete(id);
+        showToast('Sport deleted successfully', 'success');
+        loadSports();
+      } catch (err) { showToast('Could not delete: ' + err.message, 'error'); }
+    }
+
+    loadSports();
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-box" style="max-width:520px">
+      <div class="auth-logo">🏟️ Sport<span>Book</span></div>
+      <div class="auth-subtitle">Create a new account — completely free!</div>
+
+      <div id="error-msg"></div>
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="name" class="form-control" placeholder="Aditya Kumar"/>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" class="form-control" placeholder="aditya@gmail.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Min 8 characters"/>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Photo ID Type</label>
+          <select id="photoIdType" class="form-control">
+            <option value="">-- Select --</option>
+            <option value="AADHAR">Aadhar Card</option>
+            <option value="PAN">PAN Card</option>
+            <option value="PASSPORT">Passport</option>
+            <option value="DRIVING_LICENSE">Driving License</option>
+            <option value="VOTER_ID">Voter ID</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ID Number</label>
+          <input type="text" id="photoIdNumber" class="form-control" placeholder="123456789012"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Profile Picture <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="file" id="profilePicture" class="form-control" accept="image/*"/>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="regBtn" onclick="doRegister()">Create Account</button>
+
+      <div class="auth-divider">or</div>
+      <p style="text-align:center;font-size:0.9rem">
+        Already have an account? <a href="login.html">Login here</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.redirectIfLoggedIn();
+
+    async function doRegister() {
+      const btn    = document.getElementById('regBtn');
+      const errDiv = document.getElementById('error-msg');
+      errDiv.innerHTML = '';
+
+      const name          = document.getElementById('name').value.trim();
+      const email         = document.getElementById('email').value.trim();
+      const password      = document.getElementById('password').value;
+      const photoIdType   = document.getElementById('photoIdType').value;
+      const photoIdNumber = document.getElementById('photoIdNumber').value.trim();
+      const picFile       = document.getElementById('profilePicture').files[0];
+
+      if (!name || !email || !password || !photoIdType || !photoIdNumber) {
+        errDiv.innerHTML = '<div class="alert alert-danger">Please fill all required fields ⚠️</div>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('photoIdType', photoIdType);
+      formData.append('photoIdNumber', photoIdNumber);
+      if (picFile) formData.append('profilePicture', picFile);
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+
+      try {
+        const res = await AuthAPI.register(formData);
+        AUTH.setToken(res.token);
+        AUTH.setUser(res.user);
+        showToast('Account created! Welcome 🎉', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 900);
+      } catch (err) {
+        errDiv.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    }
+  </script>
+</body>
+</html>

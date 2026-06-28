@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Facilities — SportBook</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html">Sports</a></li>
+        <li><a href="facilities.html" class="active">Facilities</a></li>
+        <li><a href="my-bookings.html">My Bookings</a></li>
+        <li><a href="teams.html">Teams</a></li>
+        <li id="nav-user"></li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header">
+        <h1 id="page-title">All Facilities 🏟️</h1>
+        <p>Browse available courts and turfs</p>
+      </div>
+      <div id="facilities-container">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    AUTH.requireLogin();
+
+    const user = AUTH.getUser();
+    document.getElementById('nav-user').innerHTML = `
+      <span style="color:var(--text-muted);font-size:0.9rem">Hi, ${user?.name?.split(' ')[0]}</span>
+      &nbsp;<button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+    `;
+
+    const params    = new URLSearchParams(window.location.search);
+    const sportId   = params.get('sportId');
+    const sportName = params.get('sportName');
+
+    if (sportName) {
+      document.getElementById('page-title').textContent = `${decodeURIComponent(sportName)} Facilities 🏟️`;
+    }
+
+    async function loadFacilities() {
+      const container = document.getElementById('facilities-container');
+      try {
+        const data       = await FacilitiesAPI.getAll(sportId);
+        const facilities = data.facilities || data.data || data || [];
+
+        if (!facilities.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🏟️</div>
+              <h3>No facilities found</h3>
+              <p>No facilities available for this sport yet</p>
+              <a href="dashboard.html" class="btn btn-primary" style="margin-top:16px">Back to Sports</a>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `<div class="grid-3">
+          ${facilities.map(f => `
+            <div class="card">
+              ${f.image_url
+                ? `<img src="${f.image_url}" class="card-img" alt="${f.name}"/>`
+                : `<div class="card-img-placeholder">🏟️</div>`}
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <h3>${f.name}</h3>
+                ${f.is_active ? '<span class="badge badge-success">Open</span>' : '<span class="badge badge-danger">Closed</span>'}
+              </div>
+              <p style="font-size:0.85rem;margin-bottom:12px">${f.description || 'Indoor facility'}</p>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">📍 ${f.location || 'N/A'}</p>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">🕐 ${f.opening_time} – ${f.closing_time}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="price-tag">₹${f.price_per_hour}<small>/hr</small></div>
+                <a href="booking.html?facilityId=${f.id}&facilityName=${encodeURIComponent(f.name)}&price=${f.price_per_hour}"
+                  class="btn btn-primary btn-sm">Book Now →</a>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    loadFacilities();
+  </script>
+</body>
+</html>

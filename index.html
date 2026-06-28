@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SportBook — Indoor Sport Booking</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      background:
+        radial-gradient(ellipse at 70% 50%, rgba(26,115,232,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 10% 80%, rgba(0,198,255,0.08) 0%, transparent 50%),
+        var(--bg-dark);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(48,54,61,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(48,54,61,0.4) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 640px; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary-glow);
+      border: 1px solid rgba(26,115,232,0.3);
+      border-radius: 20px; padding: 6px 16px;
+      font-size: 0.8rem; font-weight: 600;
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 24px;
+    }
+    .hero h1 { font-size: 3.6rem; line-height: 1.1; margin-bottom: 20px; }
+    .hero h1 span { color: var(--primary); }
+    .hero p { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 36px; max-width: 500px; line-height: 1.7; }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-stats { display: flex; gap: 40px; margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--border); }
+    .hero-stat-value { font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700; color: var(--text-main); }
+    .hero-stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .sports-section { padding: 80px 0; }
+    .sport-chip {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 28px 20px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      transition: all var(--transition); text-align: center;
+    }
+    .sport-chip:hover { border-color: var(--primary); box-shadow: 0 0 24px var(--primary-glow); transform: translateY(-4px); }
+    .sport-chip .emoji { font-size: 2.4rem; }
+    .sport-chip .name { font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+    .how-section { padding: 80px 0; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-top: 48px; position: relative; }
+    .steps::before { content: ''; position: absolute; top: 28px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, var(--primary), transparent); }
+    .step { text-align: center; }
+    .step-num { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; font-family: 'Rajdhani', sans-serif; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; position: relative; z-index: 1; }
+    .step h4 { margin-bottom: 8px; }
+    .step p { font-size: 0.85rem; }
+    .cta-section { padding: 80px 0; text-align: center; background: radial-gradient(ellipse at center, rgba(26,115,232,0.12) 0%, transparent 70%); }
+    .cta-section h2 { margin-bottom: 16px; font-size: 2.4rem; }
+    .cta-section p  { margin-bottom: 36px; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">🏟️ Sport<span>Book</span></a>
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="dashboard.html">Sports</a></li>
+        <li><a href="facilities.html">Facilities</a></li>
+        <li><a href="my-bookings.html">My Bookings</a></li>
+        <li><a href="teams.html">Teams</a></li>
+        <li id="nav-auth-links">
+          <a href="login.html" class="btn btn-outline btn-sm">Login</a>
+          &nbsp;
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+      </ul>
+      <button class="navbar-menu-btn" onclick="toggleMenu()">☰</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-eyebrow">⚡ India's Indoor Sport Booking Platform</div>
+        <h1>Book Your <span>Court</span> in Seconds</h1>
+        <p>Badminton, football, cricket, swimming — find available slots at top indoor facilities and book instantly.</p>
+        <div class="hero-btns">
+          <a href="dashboard.html" class="btn btn-primary btn-lg">Browse Sports →</a>
+          <a href="register.html" class="btn btn-outline btn-lg">Create Account</a>
+        </div>
+        <div class="hero-stats">
+          <div><div class="hero-stat-value">50+</div><div class="hero-stat-label">Facilities</div></div>
+          <div><div class="hero-stat-value">10+</div><div class="hero-stat-label">Sports</div></div>
+          <div><div class="hero-stat-value">1000+</div><div class="hero-stat-label">Bookings</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sports-section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Popular Sports</h2>
+        <a href="dashboard.html" class="btn btn-outline btn-sm">View All →</a>
+      </div>
+      <div class="grid-4">
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=1'"><span class="emoji">🏸</span><span class="name">Badminton</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=2'"><span class="emoji">⚽</span><span class="name">Football</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=3'"><span class="emoji">🏏</span><span class="name">Cricket</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=4'"><span class="emoji">🏊</span><span class="name">Swimming</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=5'"><span class="emoji">🎾</span><span class="name">Tennis</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=6'"><span class="emoji">🏀</span><span class="name">Basketball</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=7'"><span class="emoji">🏐</span><span class="name">Volleyball</span></div>
+        <div class="sport-chip" onclick="location.href='facilities.html?sportId=8'"><span class="emoji">🥊</span><span class="name">Boxing</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="container">
+      <div style="text-align:center">
+        <h2>How It Works</h2>
+        <p>4 easy steps to book your slot</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><h4>Register / Login</h4><p>Create your account or sign in</p></div>
+        <div class="step"><div class="step-num">2</div><h4>Choose a Sport</h4><p>Select your favourite sport</p></div>
+        <div class="step"><div class="step-num">3</div><h4>Book a Slot</h4><p>Pick date and time and confirm</p></div>
+        <div class="step"><div class="step-num">4</div><h4>Make Payment</h4><p>Secure payment via Razorpay</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Ready to Play? 🏆</h2>
+      <p>Register now and make your first booking</p>
+      <a href="register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">🏟️ Sport<span>Book</span></div>
+          <p style="font-size:0.9rem">India's best indoor sport booking platform. Fast, secure, easy.</p>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="dashboard.html">Browse Sports</a></li>
+            <li><a href="facilities.html">Facilities</a></li>
+            <li><a href="my-bookings.html">My Bookings</a></li>
+            <li><a href="teams.html">Teams</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Account</h4>
+          <ul>
+            <li><a href="login.html">Login</a></li>
+            <li><a href="register.html">Register</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 SportBook. Built with ❤️ for NIT Trichy Internship.</div>
+    </div>
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script>
+    function updateNav() {
+      const authLinks = document.getElementById('nav-auth-links');
+      if (AUTH.isLoggedIn()) {
+        const user = AUTH.getUser();
+        authLinks.innerHTML = `
+          ${AUTH.isAdmin() ? '<a href="admin/dashboard.html" class="btn btn-outline btn-sm">Admin Panel</a>&nbsp;' : ''}
+          <span style="color:var(--text-muted);font-size:0.9rem;margin-right:8px">Hi, ${user?.name?.split(' ')[0] || 'User'}</span>
+          <button class="btn btn-danger btn-sm" onclick="AUTH.logout()">Logout</button>
+        `;
+      }
+    }
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('open');
+    }
+    updateNav();
+  </script>
+</body>
+</html>
