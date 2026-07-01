@@ -22,6 +22,11 @@ router.get(
 );
 
 router.get(
+    "/:id/availability",
+    facilityController.getAvailability
+);
+
+router.get(
     "/:id",
     facilityController.getFacilityById
 );
@@ -32,11 +37,6 @@ router.post(
     adminMiddleware,
     upload.single("image"),
     facilityController.createFacility
-);
-router.get(
-    "/:id/availability",
-    facilityController
-        .getAvailability
 );
 
 module.exports = router;

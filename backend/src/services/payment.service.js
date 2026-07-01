@@ -7,61 +7,84 @@ const razorpay =
 const paymentRepository =
     require("../repositories/payment.repository");
 
-const bookingRepository =
-    require("../repositories/booking.repository");
-
-const createOrder = async (
-    bookingId,
-    amount
+const createOrder =
+async (
+    userId,
+    body
 ) => {
+
+    const {
+        bookingId,
+        amount
+    } = body;
 
     const order =
         await razorpay.orders.create({
+
             amount:
                 amount * 100,
-            currency: "INR",
+
+            currency:
+                "INR",
+
             receipt:
                 `booking_${bookingId}`
+
         });
 
     await paymentRepository
         .createPayment(
+
             bookingId,
-            order.id,
-            amount
+
+            amount,
+
+            order.id
         );
 
     return order;
 };
 
-const verifyPayment = async (
+const verifyPayment =
+async (
     body
 ) => {
 
     const {
+
         razorpay_order_id,
+
         razorpay_payment_id,
+
         razorpay_signature
+
     } = body;
 
     const generatedSignature =
         crypto
             .createHmac(
+
                 "sha256",
+
                 process.env
                     .RAZORPAY_KEY_SECRET
             )
+
             .update(
-                `${razorpay_order_id}|${razorpay_payment_id}`
+                razorpay_order_id +
+                "|" +
+                razorpay_payment_id
             )
+
             .digest("hex");
 
     if (
         generatedSignature !==
         razorpay_signature
     ) {
+
         throw new Error(
-            "Payment verification failed"
+            "Invalid payment signature"
         );
     }
 
@@ -72,6 +95,7 @@ const verifyPayment = async (
             );
 
     if (!payment) {
+
         throw new Error(
             "Payment not found"
         );
@@ -79,21 +103,28 @@ const verifyPayment = async (
 
     await paymentRepository
         .markPaymentSuccess(
+
             payment.id,
+
             razorpay_payment_id,
+
             razorpay_signature
         );
 
-    await bookingRepository
-        .confirmBooking(
+    await paymentRepository
+        .markBookingConfirmed(
             payment.booking_id
         );
 
     return {
-        success: true
+        message:
+            "Payment Verified Successfully"
     };
 };
-module.exports={
-    verifyPayment,
-    createOrder
+
+module.exports = {
+
+    createOrder,
+
+    verifyPayment
 };

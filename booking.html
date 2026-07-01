@@ -131,13 +131,13 @@
         }
 
         container.innerHTML = `<div class="slot-grid">
-          ${slots.map(slot => `
-            <div class="slot ${slot.isBooked ? 'booked' : ''}"
-              onclick="${slot.isBooked ? '' : `selectSlot('${slot.time}', this)`}">
-              ${slot.time}
-            </div>
-          `).join('')}
-        </div>`;
+  ${slots.map(slot => `
+    <div class="slot ${!slot.available ? 'booked' : ''}"
+      onclick="${slot.available ? `selectSlot('${slot.startTime.substring(0,5)}', this)` : ''}">
+      ${slot.startTime.substring(0,5)}
+    </div>
+  `).join('')}
+</div>`;
       } catch (err) {
         container.innerHTML = `<p style="color:var(--danger)">Could not load slots: ${err.message}</p>`;
       }
@@ -198,40 +198,76 @@
       btn.textContent = 'Creating booking...';
 
       try {
-        const payload = { facilityId: parseInt(facilityId), bookingDate: date, startTime: selectedSlot, duration };
-        if (type === 'team' && teamId) payload.teamId = parseInt(teamId);
+       const payload = {
+    facilityId: parseInt(facilityId),
+    bookingDate: date,
+    startTime: selectedSlot,
+    duration
+};
 
-        const booking             = await BookingsAPI.create(payload);
-        const { bookingId, totalAmount } = booking;
+if (type === "team" && teamId) {
+    payload.teamId = parseInt(teamId);
+}
 
-        const order = await PaymentsAPI.createOrder(bookingId, totalAmount);
+// Create booking ONLY ONCE
+const bookingResponse = await BookingsAPI.create(payload);
 
-        const options = {
-          key:         order.razorpayKeyId || '',
-          amount:      totalAmount * 100,
-          currency:    'INR',
-          name:        'SportBook',
-          description: `Booking #${bookingId}`,
-          order_id:    order.razorpayOrderId,
-          handler: async function(response) {
-            try {
-              await PaymentsAPI.verify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-              });
-              showToast('Payment successful! Booking confirmed 🎉', 'success');
-              setTimeout(() => window.location.href = 'my-bookings.html', 1200);
-            } catch (err) {
-              showToast('Payment verification failed: ' + err.message, 'error');
-            }
-          },
-          prefill: { name: user?.name, email: user?.email },
-          theme:   { color: '#1a73e8' },
-        };
+console.log("Booking Response:", bookingResponse);
 
-        const rzp = new Razorpay(options);
-        rzp.open();
+const {
+    bookingId,
+    totalAmount
+} = bookingResponse.booking;
+
+// Create Razorpay Order
+const paymentResponse =
+    await PaymentsAPI.createOrder(
+        bookingId,
+        totalAmount
+    );
+
+console.log("Payment Response:", paymentResponse);
+
+const order = paymentResponse.order;
+
+const options = {
+
+    key: "rzp_test_T58Phj74auPORd",
+
+    amount: order.amount,
+
+    currency: order.currency,
+
+    name: "SportBook",
+
+    description: `Booking #${bookingId}`,
+
+    order_id: order.id,
+
+    handler: async function(response) {
+
+        await PaymentsAPI.verify({
+
+            razorpay_order_id:
+                response.razorpay_order_id,
+
+            razorpay_payment_id:
+                response.razorpay_payment_id,
+
+            razorpay_signature:
+                response.razorpay_signature
+
+        });
+
+        showToast("Payment Successful!", "success");
+
+        window.location.href = "my-bookings.html";
+    }
+};
+
+const rzp = new Razorpay(options);
+
+rzp.open();
         btn.disabled    = false;
         btn.textContent = 'Proceed to Payment 💳';
 

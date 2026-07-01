@@ -176,8 +176,15 @@ const PaymentsAPI = {
 
   // Razorpay order create
   async createOrder(bookingId, amount) {
-    return request('POST', '/payments/create-order', { bookingId, amount });
-  },
+    return request(
+        'POST',
+        '/payments/create-order',
+        {
+            bookingId,
+            amount
+        }
+    );
+},
 
   // Payment verify
   async verify(paymentData) {

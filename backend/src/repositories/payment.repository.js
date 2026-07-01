@@ -1,9 +1,13 @@
-const pool = require("../config/db");
+const pool =
+    require("../config/db");
+
+const bookingRepository =
+    require("./booking.repository");
 
 const createPayment = async (
     bookingId,
-    orderId,
-    amount
+    amount,
+    orderId
 ) => {
 
     const [result] =
@@ -18,7 +22,10 @@ const createPayment = async (
             )
             VALUES
             (
-                ?, ?, ?, 'PENDING'
+                ?,
+                ?,
+                ?,
+                'PENDING'
             )
             `,
             [
@@ -30,30 +37,9 @@ const createPayment = async (
 
     return result.insertId;
 };
-const markPaymentSuccess = async (
-    paymentId,
-    razorpayPaymentId,
-    razorpaySignature
-) => {
 
-    await pool.execute(
-        `
-        UPDATE payments
-        SET
-            razorpay_payment_id = ?,
-            razorpay_signature = ?,
-            status = 'SUCCESS',
-            verified_at = NOW()
-        WHERE id = ?
-        `,
-        [
-            razorpayPaymentId,
-            razorpaySignature,
-            paymentId
-        ]
-    );
-};
-const getPaymentByOrderId = async (
+const getPaymentByOrderId =
+async (
     orderId
 ) => {
 
@@ -69,7 +55,39 @@ const getPaymentByOrderId = async (
 
     return rows[0];
 };
-const confirmBooking = async (
+
+const markPaymentSuccess =
+async (
+    paymentId,
+    razorpayPaymentId,
+    signature
+) => {
+
+    await pool.execute(
+        `
+        UPDATE payments
+        SET
+
+            razorpay_payment_id = ?,
+
+            razorpay_signature = ?,
+
+            status = 'SUCCESS',
+
+            verified_at = NOW()
+
+        WHERE id = ?
+        `,
+        [
+            razorpayPaymentId,
+            signature,
+            paymentId
+        ]
+    );
+};
+
+const markBookingConfirmed =
+async (
     bookingId
 ) => {
 
@@ -77,16 +95,24 @@ const confirmBooking = async (
         `
         UPDATE bookings
         SET
+
             booking_status='CONFIRMED',
+
             payment_status='SUCCESS'
+
         WHERE id=?
         `,
         [bookingId]
     );
 };
-module.exports={
-    confirmBooking,
+
+module.exports = {
+
+    createPayment,
+
     getPaymentByOrderId,
+
     markPaymentSuccess,
-    createPayment
+
+    markBookingConfirmed
 };
