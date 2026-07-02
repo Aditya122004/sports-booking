@@ -1,3 +1,5 @@
+const facilityService =
+    require("../services/facility.service");
 const createFacility =
 async (
     req,

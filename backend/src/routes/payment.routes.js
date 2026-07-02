@@ -11,9 +11,22 @@ const paymentController =
     require("../controllers/payment.controller");
 
 router.post(
-    "/verify",
+
+    "/create-order",
+
     authMiddleware,
+
+    paymentController.createOrder
+);
+
+router.post(
+
+    "/verify",
+
+    authMiddleware,
+
     paymentController.verifyPayment
 );
 
-module.exports = router;
+module.exports =
+    router;

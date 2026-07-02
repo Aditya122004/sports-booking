@@ -1,5 +1,7 @@
 const bookingService =
     require("../services/booking.service");
+const bookingRepository=
+    require("../repositories/booking.repository");
 
 const createBooking =
 async (
