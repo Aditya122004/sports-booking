@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Facilities — Admin — SportBook</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">🏟️ Sport<span>Book</span></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><span class="icon">📊</span> Dashboard</a>
+        <a href="users.html"><span class="icon">👥</span> Users</a>
+        <a href="bookings.html"><span class="icon">📋</span> Bookings</a>
+        <a href="sports.html"><span class="icon">🏆</span> Sports</a>
+        <a href="facilities.html" class="active"><span class="icon">🏟️</span> Facilities</a>
+        <a href="revenue.html"><span class="icon">💰</span> Revenue</a>
+        <a href="../dashboard.html"><span class="icon">🏠</span> User View</a>
+        <a href="#" onclick="AUTH.logout()"><span class="icon">🚪</span> Logout</a>
+      </nav>
+    </aside>
+
+    <main class="admin-main">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+        <div>
+          <h1>Manage Facilities 🏟️</h1>
+          <p>Add, view or delete facilities</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Facility</button>
+      </div>
+
+      <div id="facilities-container">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Facility Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <h3>Add New Facility</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-error"></div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Facility Name</label>
+          <input type="text" id="facName" class="form-control" placeholder="Football Turf A"/>
+        </div>
+        <div class="form-group">
+          <label>Sport</label>
+          <select id="facSport" class="form-control">
+            <option value="">Loading sports...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="facDesc" class="form-control" placeholder="Premium indoor turf"/>
+      </div>
+
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="facLocation" class="form-control" placeholder="Sector 62, NIT Trichy"/>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Opening Time</label>
+          <input type="time" id="facOpen" class="form-control" value="06:00"/>
+        </div>
+        <div class="form-group">
+          <label>Closing Time</label>
+          <input type="time" id="facClose" class="form-control" value="22:00"/>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Price Per Hour (₹)</label>
+          <input type="number" id="facPrice" class="form-control" placeholder="1200"/>
+        </div>
+        <div class="form-group">
+          <label>Max Booking Hours</label>
+          <input type="number" id="facMaxHours" class="form-control" placeholder="4" value="4"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Facility Image <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="file" id="facImage" class="form-control" accept="image/*"/>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="addBtn" onclick="addFacility()">Add Facility</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    AUTH.requireAdmin();
+
+    async function loadFacilities() {
+      const container = document.getElementById('facilities-container');
+      try {
+        const data       = await FacilitiesAPI.getAll();
+        const facilities = data.facilities || data.data || data || [];
+
+        if (!facilities.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🏟️</div>
+              <h3>No facilities found</h3>
+              <p>Click "Add Facility" to add one</p>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Sport</th>
+                  <th>Location</th>
+                  <th>Timing</th>
+                  <th>Price/hr</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${facilities.map(f => `
+                  <tr>
+                    <td>#${f.id}</td>
+                    <td>
+                      <strong>${f.name}</strong>
+                      <div style="font-size:0.8rem;color:var(--text-muted)">${f.description || ''}</div>
+                    </td>
+                    <td>${f.sport_name || f.sportName || '—'}</td>
+                    <td>📍 ${f.location || '—'}</td>
+                    <td>🕐 ${f.opening_time || f.openingTime} – ${f.closing_time || f.closingTime}</td>
+                    <td style="color:var(--accent);font-weight:600">₹${f.price_per_hour || f.pricePerHour}</td>
+                    <td>
+                      <span class="badge ${f.is_active ? 'badge-success' : 'badge-danger'}">
+                        ${f.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      }
+    }
+
+    async function openAddModal() {
+      document.getElementById('addModal').classList.add('open');
+      try {
+        const data   = await SportsAPI.getAll();
+        const sports = data.sports || data.data || data || [];
+        document.getElementById('facSport').innerHTML =
+          `<option value="">-- Select Sport --</option>` +
+          sports.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      } catch {
+        document.getElementById('facSport').innerHTML = '<option>Could not load sports</option>';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('open');
+      document.getElementById('modal-error').innerHTML = '';
+    }
+
+    async function addFacility() {
+      const btn      = document.getElementById('addBtn');
+      const errDiv   = document.getElementById('modal-error');
+      errDiv.innerHTML = '';
+
+      const name      = document.getElementById('facName').value.trim();
+      const sportId   = document.getElementById('facSport').value;
+      const desc      = document.getElementById('facDesc').value.trim();
+      const location  = document.getElementById('facLocation').value.trim();
+      const openTime  = document.getElementById('facOpen').value;
+      const closeTime = document.getElementById('facClose').value;
+      const price     = document.getElementById('facPrice').value;
+      const maxHours  = document.getElementById('facMaxHours').value;
+      const imgFile   = document.getElementById('facImage').files[0];
+
+      if (!name || !sportId || !openTime || !closeTime || !price) {
+        errDiv.innerHTML = '<div class="alert alert-danger">Please fill all required fields</div>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('sportId', sportId);
+      formData.append('description', desc);
+      formData.append('location', location);
+      formData.append('openingTime', openTime);
+      formData.append('closingTime', closeTime);
+      formData.append('pricePerHour', price);
+      formData.append('maxBookingHours', maxHours || 4);
+      if (imgFile) formData.append('image', imgFile);
+
+      btn.disabled    = true;
+      btn.textContent = 'Adding...';
+
+      try {
+        await FacilitiesAPI.create(formData);
+        showToast('Facility added successfully! 🎉', 'success');
+        closeModal();
+        // Reset form
+        ['facName','facDesc','facLocation','facPrice'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('facImage').value = '';
+        loadFacilities();
+      } catch (err) {
+        errDiv.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Add Facility';
+      }
+    }
+
+    loadFacilities();
+  </script>
+</body>
+</html>
